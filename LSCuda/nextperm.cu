@@ -37,7 +37,7 @@ void rotation(char *array, int length){
      array[i] = array[i+1];
   array[i] = temp;
 }
-
+/*
 unsigned long long fatorialHost(unsigned long long n){
 	int i;
 	unsigned long long result = 1;
@@ -45,7 +45,7 @@ unsigned long long fatorialHost(unsigned long long n){
 		result *= i;
 	}
 	return result;
-}
+}*/
 
 //Calcula o LIS de todo o conjunto R partindo do pivor principal da ordem lexico gráfica
 //Caso encontre um valor que é menor do que o máximo local de S, então ele retorna e não faz os outros calculos.
@@ -114,6 +114,8 @@ void calcLMaxGlobalS(char* lMax_globalS, char* lMax_localS, int tamVec){
 	}
 }
 
+texture<unsigned long long, 1, cudaReadModeElementType> fatorial;
+
 //Seja S o conjunto de todas las sequencias dos n primeiros números naturais.
 //Defina R(s), com s \in S o conjunto de todas as sequencias que podem
 //ser geradas rotacionando S.
@@ -130,7 +132,8 @@ int main(int argc, char *argv[]){
 
 	int length = atoi(argv[1]);
 	int NUM_THREADS = atoi(argv[2]);
-	
+	const unsigned long long fatorialHost[20] = {1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200, 1307674368000, 20922789888000, 355687428096000, 6402373705728000, 121645100408832000};
+
 	cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 	//cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
 	
@@ -148,11 +151,12 @@ int main(int argc, char *argv[]){
 	cudaSetDevice(1);
 	cudaMalloc(&d_lMax_localS1, NUM_THREADS);
 	cudaMemset(d_lMax_localS1, 1, NUM_THREADS);
+	cudaBindTexture(0, fatorial, fatorialHost, sizeof(unsigned long long)*20);
 
 	start = clock();
 	
 
-	unsigned long long numSeq = fatorialHost(length-1)/2;
+	unsigned long long numSeq = fatorialHost[length-1]/2;
 	
 	dim3 num_blocks(ceil((float) NUM_THREADS/(float) (THREAD_PER_BLOCK)));
 	int tam_shared = length*THREAD_PER_BLOCK;
@@ -193,6 +197,7 @@ int main(int argc, char *argv[]){
 
 	printf("Lmax R = %d\n",lMax_globalS);
 
+	cudaUnbindTexture(fatorial);
 	free(h_lMax_localS0);
 	free(h_lMax_localS1);
 	//cudaFree(d_threadSequences);
